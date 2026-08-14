@@ -316,6 +316,7 @@ let starPick = null;
 let lastRenderKey = '';
 let pollTimer = null, tickTimer = null;
 let watchUntil = 0;              // observer must watch before cards unlock
+let prepPolled = false;          // fire one immediate poll the moment prep ends
 let busy = false;
 
 /* ============================================================
@@ -456,6 +457,7 @@ function applyState(s, t){
   if(prevRound !== null && s.round !== prevRound){   // new round → clear local scratch
     hand = null; redraws = 0; pick = {scenario:null, phrase:null}; starPick = null;
   }
+  if(prevPhase !== s.phase) prepPolled = false;
   if(prevPhase !== 'perform' && s.phase === 'perform'){
     watchUntil = srvNow() + 3000;                    // observer watches before cards unlock
   }
@@ -690,6 +692,9 @@ function tick(){
     const n = $('prepNum'), bar = $('prepBar');
     if(n){ n.textContent = left; n.className = 'num'+(left<=3?' hot':''); }
     if(bar) bar.style.width = Math.max(0,Math.min(1,(state.prepUntil - srvNow())/PREP_MS))*100+'%';
+    // The server derives the prep→perform rollover on read, so ask for it the
+    // instant the clock hits zero instead of waiting for the next scheduled poll.
+    if(left === 0 && !prepPolled){ prepPolled = true; poll(); }
   }
   if(state.phase==='perform' && myRole()==='observer'){
     if(srvNow() >= watchUntil){
