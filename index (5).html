@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>IELTS · Anatomy of a Prompt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1410; --paper:#f4ead7; --paper-2:#ede0c8;
+    --gold:#c8961e; --gold-deep:#a8780f;
+    --green:#2f7d52; --red:#b8442f; --red-soft:#e8c4b9;
+    --trap:#e2531d;
+    --shadow:rgba(26,20,16,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Space Mono',monospace;background:var(--paper);color:#000;
+    background-image:radial-gradient(circle at 12% 18%,rgba(200,150,30,.10),transparent 40%),
+                     radial-gradient(circle at 88% 82%,rgba(47,125,82,.08),transparent 42%);
+    min-height:100%;display:flex;flex-direction:column;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .wrap{width:100%;max-width:520px;margin:0 auto;padding:16px 16px 32px;flex:1;display:flex;flex-direction:column}
+  header{text-align:center;margin:6px 0 16px}
+  .kicker{font-size:11px;letter-spacing:.30em;text-transform:uppercase;color:var(--gold-deep);font-weight:700}
+  h1{font-family:'Fraunces',serif;font-weight:900;font-size:30px;line-height:.95;margin-top:4px}
+  h1 em{font-style:italic;color:var(--gold-deep)}
+  .bar-deco{height:5px;width:60px;background:var(--gold);margin:12px auto 0;border-radius:3px}
+
+  .card{background:var(--paper-2);border:2px solid var(--ink);border-radius:14px;
+        box-shadow:6px 6px 0 var(--shadow);padding:20px}
+  .card + .card{margin-top:14px}
+
+  label{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;margin-bottom:8px;color:var(--gold-deep)}
+  input[type=text]{width:100%;font-family:'Space Mono',monospace;font-size:16px;padding:13px 14px;
+        border:2px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink)}
+  input[type=text]:focus{outline:none;box-shadow:3px 3px 0 var(--gold)}
+
+  .btn{display:block;width:100%;font-family:'Fraunces',serif;font-weight:900;font-size:18px;
+       padding:15px;border:2px solid var(--ink);border-radius:11px;background:var(--gold);color:var(--ink);
+       cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .08s,box-shadow .08s;margin-top:16px}
+  .btn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+  .btn.ghost{background:var(--paper)}
+
+  /* ---- Game meta bar ---- */
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:13px;gap:8px}
+  .pill{background:var(--ink);color:var(--paper);padding:5px 11px;border-radius:20px;font-weight:700;font-size:12px;letter-spacing:.06em;white-space:nowrap}
+  .scorepill{background:var(--green);color:#fff}
+  .streakpill{background:var(--gold);color:var(--ink);display:none}
+  .streakpill.on{display:inline-block}
+
+  /* ---- Sticky prompt ---- */
+  .prompt-box{
+    background:var(--ink);color:var(--paper);border-radius:12px;
+    padding:14px 15px;margin-bottom:14px;
+    max-height:120px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    box-shadow:inset 0 -14px 14px -14px rgba(0,0,0,.5);
+    position:sticky;top:8px;z-index:5;
+  }
+  .prompt-box .plabel{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:6px}
+  .prompt-box .ptext{font-family:'Fraunces',serif;font-size:15px;line-height:1.55;font-weight:400}
+
+  /* ---- Round progress (prompt count + phase dots) ---- */
+  .progress{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
+  .promptCount{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;white-space:nowrap}
+  .dots{display:flex;gap:6px}
+  .dot{width:26px;height:6px;border-radius:6px;background:var(--paper);border:1.5px solid var(--ink);transition:background .2s}
+  .dot.done{background:var(--green)}
+  .dot.miss{background:var(--red)}
+  .dot.cur{background:var(--gold)}
+
+  /* ---- Speed bar ---- */
+  .speed-track{height:10px;border:2px solid var(--ink);border-radius:20px;background:var(--paper);overflow:hidden;margin-bottom:6px}
+  .speed-fill{height:100%;width:100%;background:var(--green);transition:width .25s linear, background .25s linear;border-radius:20px}
+  .speed-fill.mid{background:var(--gold)}
+  .speed-fill.low{background:var(--red)}
+  .speed-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);text-align:right;margin-bottom:14px;height:12px;font-weight:700}
+
+  /* ---- Phase ---- */
+  .phase-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+  .phase-tag{font-family:'Fraunces',serif;font-weight:900;font-size:20px;color:var(--gold-deep)}
+  .phase-count{font-size:11px;letter-spacing:.14em;color:var(--gold-deep);text-transform:uppercase}
+  .phase-q{font-family:'Space Mono',monospace;font-size:12px;color:#4a3f30;margin-bottom:14px;line-height:1.5}
+
+  /* option number badge + timeout */
+  .opt{position:relative}
+  .opt .kbd{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-right:9px;
+       border:1.5px solid currentColor;border-radius:5px;font-size:11px;font-weight:700;flex:0 0 auto;opacity:.65;vertical-align:middle}
+  .opt.timeout{opacity:.55}
+  @media (hover:hover){.opt:not(:disabled):hover{background:var(--gold);transform:translateY(-1px)}}
+
+  .opts{display:grid;grid-template-columns:1fr;gap:10px}
+  .opt{
+    font-family:'Space Mono',monospace;font-size:14px;line-height:1.45;padding:13px 14px;
+    border:2px solid var(--ink);border-radius:10px;background:var(--paper);
+    cursor:pointer;text-align:left;transition:transform .1s, background .12s;
+    color:#000000 !important; -webkit-text-fill-color:#000000;
+  }
+  .opt:active{transform:scale(.99)}
+  .opt.sel{background:var(--ink);color:var(--paper) !important;-webkit-text-fill-color:var(--paper)}
+  .opt.right{background:var(--green);color:#fff !important;-webkit-text-fill-color:#fff;border-color:var(--green)}
+  .opt.wrong{background:var(--red);color:#fff !important;-webkit-text-fill-color:#fff;border-color:var(--red)}
+  .opt.trap{background:var(--trap);color:#fff !important;-webkit-text-fill-color:#fff;border-color:var(--trap)}
+  .opt:disabled{cursor:default}
+
+  .feedback{margin-top:16px;padding:14px;border-radius:10px;font-size:14px;line-height:1.6;display:none}
+  .feedback.show{display:block}
+  .feedback.good{background:#d6ead7;border:2px solid var(--green)}
+  .feedback.bad{background:var(--red-soft);border:2px solid var(--red)}
+  .feedback.trap{background:#ffd9c4;border:2px solid var(--trap);color:#7a2c07}
+  .feedback strong{font-weight:700}
+  .corr{font-weight:700;color:var(--gold-deep)}
+
+  .hide{display:none!important}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(160%);
+         background:var(--ink);color:var(--paper);padding:12px 20px;border-radius:30px;font-size:13px;
+         transition:transform .3s;z-index:50;max-width:90%;text-align:center;font-weight:700}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.streak{background:var(--gold);color:var(--ink)}
+  .toast.speed{background:var(--green);color:#fff}
+
+  .done{text-align:center;padding:26px 10px}
+  .done h2{font-family:'Fraunces',serif;font-size:28px;margin-bottom:8px}
+  .done .big{font-family:'Fraunces',serif;font-size:60px;color:var(--gold-deep);font-weight:900;margin:8px 0}
+  .done .sub{font-size:13px;color:#4a3f30;line-height:1.6}
+  footer{text-align:center;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);margin-top:18px;opacity:.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Satriwithaya · English Program</div>
+    <h1>Anatomy of a <em>Prompt</em></h1>
+    <div class="bar-deco"></div>
+  </header>
+
+  <!-- JOIN -->
+  <section id="join" class="card">
+    <label for="teamName">Team Name (2 players)</label>
+    <input type="text" id="teamName" placeholder="e.g. The Thesis Statements" maxlength="28" autocomplete="off" />
+    <button class="btn" id="joinBtn">Enter the Arena</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="card hide">
+    <div class="meta">
+      <span class="pill" id="teamPill">—</span>
+      <span class="pill streakpill" id="streakPill">🔥 0</span>
+      <span class="pill scorepill" id="scorePill">0 pts</span>
+    </div>
+
+    <!-- Sticky, scrollable prompt -->
+    <div class="prompt-box" id="promptBox">
+      <div class="plabel">The Prompt</div>
+      <div class="ptext" id="promptText">—</div>
+    </div>
+
+    <!-- Round progress -->
+    <div class="progress">
+      <span class="promptCount" id="promptCount">Prompt 1 / 5</span>
+      <span class="dots" id="dots"></span>
+    </div>
+
+    <!-- Speed bar -->
+    <div class="speed-track"><div class="speed-fill" id="speedFill"></div></div>
+    <div class="speed-label" id="speedLabel">⚡ Speed bonus active</div>
+
+    <div class="phase-head">
+      <span class="phase-tag" id="phaseTag">—</span>
+      <span class="phase-count" id="phaseCount">Phase 1 / 4</span>
+    </div>
+    <div class="phase-q" id="phaseQ">Choose the option that best fits this part of the essay plan.</div>
+
+    <div class="opts" id="opts"></div>
+
+    <div class="feedback" id="feedback"></div>
+    <button class="btn ghost hide" id="nextBtn">Next →</button>
+  </section>
+
+  <!-- DONE -->
+  <section id="done" class="card hide">
+    <div class="done">
+      <h2>Round Complete!</h2>
+      <div class="big" id="finalScore">0</div>
+      <p class="sub"><span id="finalSummary"></span><br>Watch the live leaderboard!</p>
+      <button class="btn ghost" id="againBtn">Play Again</button>
+    </div>
+  </section>
+
+  <footer id="connNote">Connecting…</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========= CONFIG ========= */
+/* Paste your deployed Google Apps Script Web App URL below (see appscript.gs) */
+const API_URL = "https://script.google.com/macros/s/AKfycbxEy47rMjJ9_yy4KwJrzzXPZrBX93jslfJj1C4H3qE1exzWmfQfzj04H8EUINaq1-J8jA/exec";
+
+/* Where the question bank lives. Kept external per spec. */
+const PROMPTS_URL = "prompts.json";
+
+/* How many prompts (each = 4 phases) per round. 0 = use them all, shuffled. */
+const PROMPTS_PER_ROUND = 5;
+
+/* Timing / scoring constants */
+const PHASE_SECONDS = 30;
+const BASE_POINTS   = 10;
+const SPEED_BONUS   = 5;     // answered correctly while bar still > 50%
+
+/* Fallback bank if prompts.json can't be fetched (offline demo) */
+const FALLBACK_PROMPTS = [
+  {id:"demo1",promptText:"Some argue governments should ban private cars in city centers to reduce pollution. Others believe individuals should have the right to drive anywhere. Discuss both views and give your opinion.",
+   phases:[
+     {phaseName:"1: Core Topic",correct:"Banning city-center cars versus individual driving rights.",distractors:["How cities can best reduce their air pollution over the coming decades.","The serious environmental damage that private cars cause across the world.","Whether reliable public transport is better than owning a car."]},
+     {phaseName:"2: Side A",correct:"Governments should ban private cars downtown to cut pollution.",distractors:["Cars release a large amount of harmful exhaust into the city air every day.","Traffic jams in the city centre waste an enormous amount of people's time.","Riding a bicycle to work is a much healthier way to travel around town."]},
+     {phaseName:"3: Side B",correct:"Individuals have the right to drive their own cars freely.",distractors:["Driving your own private car is convenient for busy families.","Petrol stations can be found on almost every street corner in the city.","A great many people enjoy the freedom and feeling of driving."]},
+     {phaseName:"4: 3-Part Rule",correct:"1) Why ban cars, 2) Why protect driving rights, 3) Your view.",distractors:["1) Why cars pollute, 2) Why people like driving, 3) A short conclusion.","1) The history of the car, 2) The future of the car, 3) The best model.","1) Why pollution is harmful, 2) How to stop it, 3) The best transport."]}
+   ]}
+];
+
+/* ========= STATE ========= */
+let team="";
+let score=0;
+let prompts=[];
+let pIdx=0;          // current prompt index
+let phaseIdx=0;      // current phase index (0..3)
+let currentStreak=0;
+let bestStreak=0;
+let answered=false;
+let offline=false;
+let currentOptions=[];   // shuffled option list for this phase
+let trapText="";         // distractors[0] for this phase
+let correctText="";
+let totalPhases=0, phasesSeen=0, phasesCorrect=0;
+let phaseResults=[null,null,null,null];   // per-phase correctness for the CURRENT prompt's dots
+let optButtons=[];                        // current phase option <button> refs (for keyboard)
+
+/* speed bar */
+let speedRAF=null, phaseStart=0, timeoutTimer=null;
+
+const $ = id => document.getElementById(id);
+
+/* ========= NETWORK ========= */
+async function api(method, body, params){
+  if(!API_URL || API_URL.indexOf("PASTE_")===0) throw new Error("no-api");
+  let url = API_URL;
+  if(params) url += (url.indexOf('?')>-1?'&':'?') + params;
+  const opts = { method, redirect:'follow' };
+  if(method==='POST'){ opts.headers={'Content-Type':'text/plain;charset=utf-8'}; opts.body=JSON.stringify(body); }
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+async function loadPrompts(){
+  try{
+    const res = await fetch(PROMPTS_URL, {cache:"no-store"});
+    if(!res.ok) throw new Error("http "+res.status);
+    const data = await res.json();
+    if(!Array.isArray(data) || !data.length) throw new Error("empty");
+    prompts = data;
+    $('connNote').textContent = (API_URL.indexOf("PASTE_")===0)
+      ? "Prompts loaded · leaderboard not linked (set API_URL)"
+      : "Live · synced to leaderboard";
+    offline = (API_URL.indexOf("PASTE_")===0);
+  }catch(e){
+    prompts = FALLBACK_PROMPTS.slice();
+    offline = true;
+    $('connNote').textContent = "Offline demo mode (scores not saved)";
+  }
+}
+
+/* ========= ROUND SETUP ========= */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function prepareRound(){
+  prompts = shuffle(prompts.slice());
+  if(PROMPTS_PER_ROUND>0 && prompts.length>PROMPTS_PER_ROUND) prompts = prompts.slice(0,PROMPTS_PER_ROUND);
+  totalPhases = prompts.length*4;
+  phasesSeen=0; phasesCorrect=0;
+}
+
+/* ========= RENDER ========= */
+function renderPhase(){
+  answered=false;
+  const p = prompts[pIdx];
+  const ph = p.phases[phaseIdx];
+
+  $('promptText').textContent = p.promptText;
+  $('promptBox').scrollTop = 0;
+
+  // phaseName is like "1: Core Topic" — split label/name gracefully
+  const parts = String(ph.phaseName).split(':');
+  $('phaseTag').textContent = parts.length>1 ? parts.slice(1).join(':').trim() : ph.phaseName;
+  $('phaseCount').textContent = 'Phase '+(phaseIdx+1)+' / 4';
+
+  const questions = [
+    "Which option best states the CORE TOPIC being debated?",
+    "Which option best states SIDE A (the first argument)?",
+    "Which option best states SIDE B (the opposing argument)?",
+    "Which option correctly maps the 3-PART essay structure?"
+  ];
+  $('phaseQ').textContent = questions[phaseIdx] || "Pick the best option.";
+
+  // round progress
+  $('promptCount').textContent = 'Prompt '+(pIdx+1)+' / '+prompts.length;
+  renderDots();
+
+  correctText = ph.correct;
+  trapText = ph.distractors[0];            // distractors[0] is the TRAP
+  currentOptions = shuffle([ph.correct, ...ph.distractors]);
+
+  buildOpts(currentOptions);
+
+  $('feedback').className='feedback'; $('feedback').innerHTML='';
+  $('nextBtn').classList.add('hide');
+  $('scorePill').textContent = score+' pts';
+  $('speedLabel').textContent = '⚡ Speed bonus active';
+  $('speedLabel').style.color = 'var(--green)';
+  updateStreakPill();
+
+  startSpeedBar();
+}
+
+/* 4 dots = the 4 phases of the CURRENT prompt */
+function renderDots(){
+  const c=$('dots'); c.innerHTML='';
+  for(let i=0;i<4;i++){
+    const d=document.createElement('span'); d.className='dot';
+    if(i<phaseIdx) d.classList.add(phaseResults[i]===false?'miss':'done');
+    else if(i===phaseIdx) d.classList.add('cur');
+    c.appendChild(d);
+  }
+}
+
+function buildOpts(opts){
+  const c = $('opts'); c.innerHTML=''; optButtons=[];
+  opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.type='button';
+    const kbd=document.createElement('span'); kbd.className='kbd'; kbd.textContent=(i+1);
+    const txt=document.createElement('span'); txt.textContent=o;
+    b.appendChild(kbd); b.appendChild(txt);
+    b.onclick=()=>selectAnswer(o, b);
+    c.appendChild(b); optButtons.push(b);
+  });
+}
+
+function updateStreakPill(){
+  const pill=$('streakPill');
+  if(currentStreak>=2){ pill.classList.add('on'); pill.textContent='🔥 '+currentStreak; }
+  else pill.classList.remove('on');
+}
+
+/* ========= SPEED BAR ========= */
+function startSpeedBar(){
+  cancelAnimationFrame(speedRAF);
+  clearTimeout(timeoutTimer);
+  phaseStart = performance.now();
+  const fill = $('speedFill');
+  fill.className='speed-fill';
+  // hard timeout: if no answer within PHASE_SECONDS, auto-resolve as a timeout
+  timeoutTimer = setTimeout(()=>{ if(!answered) selectAnswer(null, null); }, PHASE_SECONDS*1000);
+  const step = ()=>{
+    const elapsed = (performance.now()-phaseStart)/1000;
+    let pct = Math.max(0, 1 - elapsed/PHASE_SECONDS);
+    fill.style.width = (pct*100)+'%';
+    fill.className = 'speed-fill' + (pct<=0.25?' low':pct<=0.5?' mid':'');
+    // live speed-bonus indicator
+    const sl=$('speedLabel');
+    if(!answered){
+      if(pct>0.5){ sl.textContent='⚡ Speed bonus active'; sl.style.color='var(--green)'; }
+      else if(pct>0){ sl.textContent='Speed bonus lost'; sl.style.color='var(--gold-deep)'; }
+      else { sl.textContent="Time's up!"; sl.style.color='var(--red)'; }
+    }
+    if(pct>0 && !answered) speedRAF=requestAnimationFrame(step);
+  };
+  step();
+}
+function speedPct(){
+  const elapsed=(performance.now()-phaseStart)/1000;
+  return Math.max(0, 1 - elapsed/PHASE_SECONDS);
+}
+
+/* ========= ANSWER ========= */
+async function selectAnswer(choice, btn){
+  if(answered) return;
+  answered=true;
+  cancelAnimationFrame(speedRAF);
+  clearTimeout(timeoutTimer);
+  phasesSeen++;
+
+  const isTimeout = (choice===null);        // ran out of time
+  const isCorrect = (choice===correctText);
+  const isTrap    = (!isCorrect && !isTimeout && choice===trapText);
+  const stillFast = speedPct()>0.5;
+
+  // record for the phase dots
+  phaseResults[phaseIdx] = isCorrect;
+
+  // disable all
+  optButtons.forEach(b=>b.disabled=true);
+
+  // compute points client-side (server is authoritative if online)
+  let gained=0, streakBonus=0, speedBonus=0;
+  if(isCorrect){
+    gained = BASE_POINTS;
+    currentStreak++;
+    bestStreak=Math.max(bestStreak,currentStreak);
+    phasesCorrect++;
+    if(currentStreak===2) streakBonus=2;
+    else if(currentStreak>=3) streakBonus=5;
+    if(stillFast) speedBonus=SPEED_BONUS;
+    gained += streakBonus + speedBonus;
+  }else{
+    currentStreak=0;
+  }
+
+  // send to backend (server returns authoritative score if available)
+  if(!offline){
+    try{
+      const r = await api('POST', {action:'score', team, promptId:prompts[pIdx].id, phase:phaseIdx,
+                                   correct:isCorrect, gained, streak:currentStreak});
+      if(r && typeof r.score==='number') score=r.score; else score+=gained;
+    }catch(e){ score+=gained; }
+  }else{
+    score+=gained;
+  }
+
+  // mark buttons (compare against the option text we stored, not textContent which includes the badge)
+  optButtons.forEach((b,i)=>{
+    const o=currentOptions[i];
+    if(o===correctText) b.classList.add('right');
+    else if(o===choice && isTrap) b.classList.add('trap');
+    else if(o===choice && !isCorrect) b.classList.add('wrong');
+    else if(isTimeout) b.classList.add('timeout');
+  });
+
+  // feedback
+  const fb=$('feedback');
+  if(isCorrect){
+    fb.className='feedback show good';
+    let msg='<strong>✓ Correct!</strong> +'+BASE_POINTS+' points';
+    if(speedBonus) msg+=' · +'+speedBonus+' speed';
+    if(streakBonus) msg+=' · +'+streakBonus+' streak';
+    fb.innerHTML=msg+'.';
+    if(streakBonus) toast('🔥 '+currentStreak+' in a row! +'+streakBonus+' Bonus!','streak');
+    else if(speedBonus) toast('⚡ Speed Bonus! +'+speedBonus,'speed');
+  }else if(isTimeout){
+    fb.className='feedback show bad';
+    fb.innerHTML="<strong>⏱ Time's up!</strong> No answer given.<br>Correct answer → <span class=\"corr\">"+correctText+'</span>';
+  }else if(isTrap){
+    fb.className='feedback show trap';
+    fb.innerHTML='<strong>🚨 TRAP TRIGGERED!</strong> You chose a plausible but incorrect assumption. '+
+                 'Read the constraints carefully!<br>Correct answer → <span class="corr">'+correctText+'</span>';
+  }else{
+    fb.className='feedback show bad';
+    fb.innerHTML='<strong>✗ Not quite.</strong><br>Correct answer → <span class="corr">'+correctText+'</span>';
+  }
+
+  renderDots();  // reflect this phase's result
+  $('scorePill').textContent = score+' pts';
+  updateStreakPill();
+  $('nextBtn').classList.remove('hide');
+  $('nextBtn').focus();
+  if(pIdx>=prompts.length-1 && phaseIdx>=3) $('nextBtn').textContent='Finish ✦';
+}
+
+/* ========= FLOW ========= */
+function next(){
+  if(phaseIdx<3){ phaseIdx++; }
+  else if(pIdx<prompts.length-1){ pIdx++; phaseIdx=0; phaseResults=[null,null,null,null]; }
+  else { finish(); return; }
+  renderPhase();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function finish(){
+  cancelAnimationFrame(speedRAF); clearTimeout(timeoutTimer);
+  $('game').classList.add('hide'); $('done').classList.remove('hide');
+  $('finalScore').textContent = score;
+  $('finalSummary').textContent =
+    phasesCorrect+' / '+phasesSeen+' phases correct · best streak '+bestStreak+'.';
+}
+
+/* ========= UI ========= */
+function toast(msg, kind){
+  const t=$('toast'); t.textContent=msg;
+  t.className='toast show'+(kind?' '+kind:'');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.className='toast'+(kind?' '+kind:''),2200);
+}
+
+/* ========= EVENTS ========= */
+// Pre-fill last team name (handy when a phone reloads mid-lesson)
+try{ const last=localStorage.getItem('arena_team'); if(last) $('teamName').value=last; }catch(e){}
+
+function resetRoundState(){ pIdx=0; phaseIdx=0; score=0; currentStreak=0; bestStreak=0;
+  phasesSeen=0; phasesCorrect=0; phaseResults=[null,null,null,null]; }
+
+$('joinBtn').onclick = async ()=>{
+  const name=$('teamName').value.trim();
+  if(name.length<2){ toast('Enter a team name.'); return; }
+  team=name; try{ localStorage.setItem('arena_team',team); }catch(e){}
+  $('joinBtn').textContent='Loading…'; $('joinBtn').disabled=true;
+  await loadPrompts();
+  prepareRound();
+  if(!offline){ try{ await api('POST',{action:'register',team}); }catch(e){} }
+  $('teamPill').textContent=team;
+  $('join').classList.add('hide'); $('game').classList.remove('hide');
+  resetRoundState();
+  renderPhase();
+};
+// Enter key submits the join form
+$('teamName').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('joinBtn').click(); }});
+
+$('nextBtn').onclick = next;
+$('againBtn').onclick = async ()=>{
+  $('joinBtn').textContent='Enter the Arena'; $('joinBtn').disabled=false;
+  await loadPrompts(); prepareRound();
+  $('done').classList.add('hide'); $('game').classList.remove('hide');
+  resetRoundState();
+  if(!offline){ try{ await api('POST',{action:'register',team}); }catch(e){} }
+  renderPhase();
+};
+
+/* ---- Keyboard: 1-4 to answer, Enter/Space to advance ---- */
+document.addEventListener('keydown', e=>{
+  if($('game').classList.contains('hide')) return;   // only during play
+  if(!answered && ['1','2','3','4'].includes(e.key)){
+    const i=+e.key-1;
+    if(optButtons[i]){ e.preventDefault(); optButtons[i].click(); }
+  }else if(answered && (e.key==='Enter'||e.key===' ')){
+    e.preventDefault(); next();
+  }
+});
+</script>
+</body>
+</html>
