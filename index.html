@@ -66,6 +66,15 @@
   .pill.score{background:var(--green);color:#fff}
   .pill.role-actor{background:var(--gold);color:var(--ink)}
   .pill.role-observer{background:var(--violet);color:#fff}
+  .pill.streak{background:var(--red);color:#fff;display:none}
+  .pill.streak.on{display:inline-block;animation:flamepop .5s}
+  @keyframes flamepop{0%{transform:scale(.6)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+  .timesup{background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:11px;
+           padding:11px 13px;margin-bottom:12px;text-align:center;font-weight:700;font-size:12px;
+           letter-spacing:.08em;line-height:1.6;display:none}
+  .timesup.on{display:block}
+  .timesup b{font-family:'Fraunces',serif;font-weight:900;font-size:17px;display:block;letter-spacing:0;margin-bottom:3px}
 
   /* ---- role banner ---- */
   .rolebanner{border:2px solid var(--ink);border-radius:12px;padding:13px 14px;margin-bottom:13px;text-align:center}
@@ -142,6 +151,7 @@
          transition:transform .3s;z-index:60;max-width:90%;text-align:center;font-weight:700}
   .toast.show{transform:translateX(-50%) translateY(0)}
   .toast.warn{background:var(--red);color:#fff}
+  .toast.streak{background:var(--red);color:#fff}
   footer{text-align:center;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-deep);margin-top:16px;opacity:.75;line-height:1.9}
   footer a{color:inherit}
   .tinybtn{background:none;border:none;font:inherit;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-deep);cursor:pointer;text-decoration:underline}
@@ -182,8 +192,11 @@
       <span class="pill" id="pillTeam">—</span>
       <span class="pill" id="pillRound">Round 1</span>
       <span class="pill" id="pillRole">—</span>
+      <span class="pill streak" id="pillStreak">🔥 0</span>
       <span class="pill score" id="pillScore">0 pts</span>
     </div>
+
+    <div class="timesup" id="timesUp"><b>⏱ Time is up!</b>Finish this round, then look at the board.</div>
 
     <div id="body"></div>
   </section>
@@ -474,6 +487,13 @@ function render(){
   $('pillTeam').textContent = state.name || ('Team '+state.team);
   $('pillRound').textContent = 'Round '+state.round;
   $('pillScore').textContent = state.score+' pts';
+
+  const sp = $('pillStreak');
+  if((state.streak||0) >= 2){ sp.classList.add('on'); sp.textContent = '🔥 '+state.streak; }
+  else sp.classList.remove('on');
+
+  $('timesUp').classList.toggle('on', !!(timer && timer.state === 'finished'));
+
   const rp = $('pillRole');
   rp.textContent = (role==='actor' ? '🎭 Actor' : '👀 Observer') + ' · ' + mySlot;
   rp.className = 'pill role-'+role;
@@ -601,6 +621,7 @@ function viewResult(role){
   const good = state.correct;
   const base = good ? 10 : 2;
   const bonus = {1:1,2:3,3:5}[state.stars] || 0;
+  const sBonus = good ? (state.streak>=4 ? 8 : ({2:3,3:5}[state.streak] || 0)) : 0;
   let h = '<div class="verdict '+(good?'good':'bad')+'">'+
     '<div class="v1">'+(good?'✓ Read correctly!':'✗ Missed it')+'</div>'+
     '<div class="v2">'+(role==='actor'
@@ -608,7 +629,8 @@ function viewResult(role){
         : (good?'You read your partner perfectly.':'Look at their face and shoulders next time.'))+'</div>'+
     '<div class="ptsline"><span class="ptag">'+(good?'+10 correct':'+2 good try')+'</span>'+
     '<span class="ptag">+'+bonus+' acting ('+ '⭐'.repeat(state.stars||0) +')</span>'+
-    '<span class="ptag">= +'+(base+bonus)+' pts</span></div></div>';
+    (sBonus ? '<span class="ptag" style="background:var(--red)">+'+sBonus+' streak 🔥'+state.streak+'</span>' : '')+
+    '<span class="ptag">= +'+(base+bonus+sBonus)+' pts</span></div></div>';
 
   h += '<div class="revealrow"><b>'+FAMILIES[s.family].emoji+' The situation was</b>'+esc(s.text)+'</div>';
   h += '<div class="revealrow"><b>The line</b>“'+esc(PHR[state.phraseId].text)+'”</div>';
@@ -661,7 +683,11 @@ function wire(){
   const rate = $('rateBtn');
   if(rate) rate.onclick = ()=> once(rate, async ()=>{
     const r = await api('POST', { action:'rate', team:myTeam, device:deviceId, stars:starPick });
-    if(r && r.ok){ if(r.points) toast('+'+r.points+' points!'); applyState(r.state, r.timer); }
+    if(r && r.ok){
+      if(r.streakBonus) toast('🔥 '+r.streak+' correct in a row!  +'+r.points+' points','streak');
+      else if(r.points) toast('+'+r.points+' points!');
+      applyState(r.state, r.timer);
+    }
     else toast((r&&r.error)||'Could not send score','warn');
   });
 
