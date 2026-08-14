@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Step Into Character · Live Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,600;9..144,0,900;9..144,1,900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1a1410; --paper:#f4ead7; --gold:#c8961e; --gold-deep:#a8780f;
+    --green:#2f7d52; --red:#b8442f; --violet:#7a5cc4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Space Mono',monospace;background:var(--ink);color:var(--paper);overflow:hidden;
+       background-image:radial-gradient(circle at 15% 12%,rgba(200,150,30,.18),transparent 45%),
+                        radial-gradient(circle at 85% 88%,rgba(47,125,82,.14),transparent 45%);}
+  .stage{height:100vh;display:flex;flex-direction:column;padding:22px 36px 18px}
+
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex:0 0 auto}
+  .title .kicker{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold)}
+  .title h1{font-family:'Fraunces',serif;font-weight:900;font-size:40px;line-height:.98;margin-top:4px}
+  .title h1 em{font-style:italic;color:var(--gold)}
+  .title .sub{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,234,215,.55);margin-top:8px}
+
+  .timerbox{text-align:right;flex:0 0 auto}
+  .timerbox .lab{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+  .timerbox .clock{font-family:'Fraunces',serif;font-weight:900;font-size:78px;line-height:.9;font-variant-numeric:tabular-nums}
+  .clock.warn{color:var(--gold)}
+  .clock.danger{color:var(--red);animation:pulse .9s infinite}
+  @keyframes pulse{50%{opacity:.4}}
+
+  .main{flex:1;display:grid;grid-template-columns:1fr 300px;gap:24px;min-height:0;margin-top:14px}
+  .chartwrap{position:relative;min-height:0}
+  .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+         font-family:'Fraunces',serif;font-size:28px;color:var(--gold);opacity:.55;text-align:center;line-height:1.4}
+
+  /* Fallback board, used when the Chart.js CDN is unreachable (filtered
+     school wifi, offline projector). Same information, no dependency. */
+  .bars{position:absolute;inset:0;overflow:hidden;display:none;flex-direction:column;gap:9px;justify-content:center}
+  .bars.on{display:flex}
+  .barrow{display:grid;grid-template-columns:200px 1fr 62px;align-items:center;gap:12px}
+  .barrow .nm{font-family:'Fraunces',serif;font-weight:900;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .barrow .tr{height:26px;background:rgba(244,234,215,.09);border-radius:7px;overflow:hidden}
+  .barrow .tr>i{display:block;height:100%;border-radius:7px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .barrow .vl{font-family:'Fraunces',serif;font-weight:900;font-size:20px;text-align:right;font-variant-numeric:tabular-nums}
+
+  aside{display:flex;flex-direction:column;gap:14px;min-height:0}
+  .panel{border:1.5px solid rgba(200,150,30,.35);border-radius:14px;padding:14px 15px;background:rgba(0,0,0,.18)}
+  .panel h2{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:11px}
+  .statrow{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:5px 0}
+  .statrow b{font-family:'Fraunces',serif;font-weight:900;font-size:23px}
+  .feed{flex:1;min-height:0;overflow:hidden}
+  .feed ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .feed li{font-size:12px;line-height:1.4;padding:9px 10px;border-radius:9px;background:rgba(244,234,215,.06);
+           border-left:3px solid var(--gold);display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .feed li.hit{border-left-color:var(--green)}
+  .feed li.miss{border-left-color:var(--red)}
+  .feed .who{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .feed .pts{color:var(--gold);font-weight:700;white-space:nowrap}
+  .feed .none{opacity:.45;font-size:12px}
+
+  .controls{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;flex:0 0 auto}
+  .controls input{font-family:'Space Mono',monospace;width:68px;font-size:16px;padding:8px;border:2px solid var(--gold);
+                  border-radius:8px;background:transparent;color:var(--paper);text-align:center}
+  .controls button{font-family:'Fraunces',serif;font-weight:900;font-size:15px;padding:9px 18px;border:2px solid var(--gold);
+                   border-radius:9px;background:var(--gold);color:var(--ink);cursor:pointer}
+  .controls button.ghost{background:transparent;color:var(--gold)}
+  .controls button.danger{border-color:var(--red);color:var(--red)}
+  .controls .spacer{flex:1}
+  .status{font-size:11px;letter-spacing:.15em;color:var(--gold);text-transform:uppercase}
+
+  @media (max-width:1100px){ .main{grid-template-columns:1fr} aside{display:none} }
+</style>
+</head>
+<body>
+<div class="stage">
+  <header>
+    <div class="title">
+      <div class="kicker">Satriwithaya · English Program</div>
+      <h1>Step Into Character: <em>Live Arena</em></h1>
+      <div class="sub" id="subline">Actor performs · Observer reads · Roles swap every round</div>
+    </div>
+    <div class="timerbox">
+      <div class="lab">Time Remaining</div>
+      <div class="clock" id="clock">--:--</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="chartwrap">
+      <canvas id="chart"></canvas>
+      <div class="bars" id="bars"></div>
+      <div class="empty" id="empty">Waiting for teams to join…</div>
+    </div>
+
+    <aside>
+      <div class="panel">
+        <h2>Round Stats</h2>
+        <div class="statrow"><span>Teams live</span><b id="stLive">0</b></div>
+        <div class="statrow"><span>Rounds performed</span><b id="stRounds">0</b></div>
+        <div class="statrow"><span>Read correctly</span><b id="stAcc">—</b></div>
+      </div>
+      <div class="panel feed">
+        <h2>Latest Performances</h2>
+        <ul id="feedList"><li class="none">Nothing yet…</li></ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="controls">
+    <input type="number" id="mins" value="12" min="1" max="60" />
+    <button id="startBtn">Start Round</button>
+    <button class="ghost" id="stopBtn">Stop</button>
+    <button class="ghost danger" id="resetBtn">Reset Scores</button>
+    <div class="spacer"></div>
+    <div class="status" id="status">Connecting…</div>
+  </div>
+</div>
+
+<script>
+/* Paste the SAME deployed Apps Script /exec URL you used in index.html */
+const API_URL = "PASTE_URL_HERE";
+const NUM_TEAMS = 15;
+
+async function api(method, body, params){
+  if(!API_URL || API_URL.indexOf("PASTE_")===0) throw new Error("no-api");
+  let url = API_URL;
+  if(params) url += (url.indexOf('?')>-1?'&':'?') + params;
+  const opts={method,redirect:'follow'};
+  if(method==='POST'){opts.headers={'Content-Type':'text/plain;charset=utf-8'};opts.body=JSON.stringify(body);}
+  const r=await fetch(url,opts); return r.json();
+}
+
+/* ---------- Chart ----------
+   Chart.js is loaded from a CDN. School networks block CDNs more often
+   than anyone expects, and an uncaught ReferenceError here would take
+   the timer, the stats and the teacher controls down with it. So the
+   chart is optional: if it is missing we draw plain CSS bars instead. */
+const COLORS = ['#c8961e','#2f7d52','#b8442f','#7a5cc4','#2f6d9e','#c46a1e','#5a8f3a','#a83f6a',
+                '#3a8f8a','#9e7a2f','#6a4fb0','#2f9e6d','#b04f3a','#4f6ab0','#8f5a2f'];
+let chart = null;
+try{
+  if(typeof Chart === 'function'){
+    chart = new Chart(document.getElementById('chart').getContext('2d'), {
+      type:'bar',
+      data:{labels:[],datasets:[{label:'Score',data:[],backgroundColor:[],borderColor:'#1a1410',borderWidth:2,borderRadius:8}]},
+      options:{
+        indexAxis:'y', animation:{duration:600,easing:'easeOutQuart'},
+        responsive:true, maintainAspectRatio:false,
+        layout:{padding:{right:26}},
+        plugins:{legend:{display:false},tooltip:{enabled:false}},
+        scales:{
+          x:{beginAtZero:true,grid:{color:'rgba(244,234,215,.12)'},ticks:{color:'#f4ead7',precision:0,font:{family:'Space Mono',size:13}}},
+          y:{grid:{display:false},ticks:{color:'#f4ead7',font:{family:'Fraunces',weight:'900',size:16},autoSkip:false}}
+        }
+      }
+    });
+  }
+}catch(e){ chart = null; }
+if(!chart){
+  document.getElementById('chart').style.display='none';
+  document.getElementById('bars').classList.add('on');
+}
+
+/* Show every team that has scored, plus any team currently connected,
+   so the board never looks empty mid-lesson but also never shows 15
+   dead bars at zero. */
+function renderBoard(teams){
+  const empty=document.getElementById('empty');
+  const shown = teams.filter(t=> t.score>0 || t.live);
+  if(!shown.length){
+    empty.style.display='flex';
+    if(chart){ chart.data.labels=[]; chart.data.datasets[0].data=[]; chart.update(); }
+    else document.getElementById('bars').innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+  const sorted=[...shown].sort((a,b)=> b.score-a.score || a.team-b.team).slice(0,NUM_TEAMS);
+
+  if(chart){
+    chart.data.labels = sorted.map((t,i)=> (i===0 && t.score>0 ?'👑 ':'') + (t.name||('Team '+t.team)));
+    chart.data.datasets[0].data = sorted.map(t=>t.score);
+    chart.data.datasets[0].backgroundColor = sorted.map(t=>COLORS[(t.team-1)%COLORS.length]);
+    chart.update();
+    return;
+  }
+
+  const max = Math.max(1, ...sorted.map(t=>t.score));
+  document.getElementById('bars').innerHTML = sorted.map((t,i)=>
+    '<div class="barrow">'+
+      '<div class="nm">'+(i===0 && t.score>0?'👑 ':'')+escapeHtml(t.name||('Team '+t.team))+'</div>'+
+      '<div class="tr"><i style="width:'+(t.score/max*100)+'%;background:'+COLORS[(t.team-1)%COLORS.length]+'"></i></div>'+
+      '<div class="vl">'+t.score+'</div>'+
+    '</div>').join('');
+}
+
+function renderStats(teams){
+  const live = teams.filter(t=>t.live).length;
+  const rounds = teams.reduce((n,t)=>n+(t.rounds||0),0);
+  const correct = teams.reduce((n,t)=>n+(t.correct||0),0);
+  document.getElementById('stLive').textContent = live;
+  document.getElementById('stRounds').textContent = rounds;
+  document.getElementById('stAcc').textContent = rounds ? Math.round(correct/rounds*100)+'%' : '—';
+}
+
+function renderFeed(feed){
+  const ul=document.getElementById('feedList');
+  if(!feed || !feed.length){ ul.innerHTML='<li class="none">Nothing yet…</li>'; return; }
+  ul.innerHTML = feed.slice(0,7).map(f=>
+    '<li class="'+(f.correct?'hit':'miss')+'">'+
+      '<span class="who">'+(f.correct?'✓':'✗')+' '+escapeHtml(f.name||('Team '+f.team))+'</span>'+
+      '<span class="pts">'+'⭐'.repeat(f.stars||0)+' +'+f.points+'</span>'+
+    '</li>').join('');
+}
+function escapeHtml(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- Timer: absolute timestamp, survives a projector refresh ---------- */
+let expirationMs=0, running=false, skew=0;
+function renderClock(){
+  const clock=document.getElementById('clock');
+  if(!running || !expirationMs){ clock.textContent='--:--'; clock.className='clock'; return; }
+  const rem=Math.max(0, expirationMs - (Date.now()+skew));
+  const s=Math.floor(rem/1000), m=Math.floor(s/60), ss=String(s%60).padStart(2,'0');
+  clock.textContent = m+':'+ss;
+  clock.className = 'clock' + (s<=30?' danger':s<60?' warn':'');
+}
+setInterval(renderClock,250);
+
+/* ---------- Poll every 3s ---------- */
+let failures = 0;
+async function poll(){
+  try{
+    const r=await api('GET',null,'action=leaderboard');
+    if(r && r.ok){
+      failures = 0;
+      if(r.now) skew = r.now - Date.now();
+      renderBoard(r.teams||[]);
+      renderStats(r.teams||[]);
+      renderFeed(r.feed||[]);
+      if(r.timer){ expirationMs=r.timer.expirationMs||0; running=!!r.timer.running; }
+      const live=(r.teams||[]).filter(t=>t.live).length;
+      document.getElementById('status').textContent='Live · '+live+' teams connected';
+    }else{
+      document.getElementById('status').textContent = 'Backend error';
+    }
+  }catch(e){
+    failures++;
+    document.getElementById('status').textContent =
+      (String(e.message)==='no-api') ? 'Set API_URL in leaderboard.html'
+                                     : 'Reconnecting… ('+failures+')';
+  }
+}
+poll(); setInterval(poll,3000);
+
+/* ---------- Teacher controls ---------- */
+document.getElementById('startBtn').onclick=async()=>{
+  const m=parseInt(document.getElementById('mins').value)||10;
+  try{ await api('POST',{action:'start',minutes:m}); poll(); }catch(e){ alert('Set API_URL first.'); }
+};
+document.getElementById('stopBtn').onclick=async()=>{
+  try{ await api('POST',{action:'stop'}); poll(); }catch(e){ alert('Set API_URL first.'); }
+};
+document.getElementById('resetBtn').onclick=async()=>{
+  if(!confirm('Reset ALL team scores, states and the timer?')) return;
+  try{ await api('POST',{action:'reset'}); poll(); }catch(e){ alert('Set API_URL first.'); }
+};
+</script>
+</body>
+</html>

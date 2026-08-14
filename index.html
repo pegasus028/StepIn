@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Step Into Character · Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,600;9..144,0,900;9..144,1,900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1410; --paper:#f4ead7; --paper-2:#ede0c8;
+    --gold:#c8961e; --gold-deep:#a8780f;
+    --green:#2f7d52; --red:#b8442f; --red-soft:#e8c4b9;
+    --blue:#2f6d9e; --violet:#7a5cc4;
+    --shadow:rgba(26,20,16,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Space Mono',monospace;background:var(--paper);color:var(--ink);
+    background-image:radial-gradient(circle at 12% 15%,rgba(200,150,30,.12),transparent 42%),
+                     radial-gradient(circle at 88% 85%,rgba(47,125,82,.09),transparent 44%);
+    min-height:100%;display:flex;flex-direction:column;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .wrap{width:100%;max-width:540px;margin:0 auto;padding:14px 14px 28px;flex:1;display:flex;flex-direction:column}
+  header{text-align:center;margin:4px 0 14px}
+  .kicker{font-size:10px;letter-spacing:.30em;text-transform:uppercase;color:var(--gold-deep);font-weight:700}
+  h1{font-family:'Fraunces',serif;font-weight:900;font-size:29px;line-height:.95;margin-top:4px}
+  h1 em{font-style:italic;color:var(--gold-deep)}
+  .bar-deco{height:5px;width:56px;background:var(--gold);margin:11px auto 0;border-radius:3px}
+
+  .card{background:var(--paper-2);border:2px solid var(--ink);border-radius:14px;
+        box-shadow:6px 6px 0 var(--shadow);padding:18px}
+  .card + .card{margin-top:12px}
+
+  label{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;margin-bottom:7px;color:var(--gold-deep)}
+  select,input[type=text]{width:100%;font-family:'Space Mono',monospace;font-size:16px;padding:13px 12px;
+        border:2px solid var(--ink);border-radius:9px;background:var(--paper);color:var(--ink);appearance:none}
+  select:focus,input[type=text]:focus{outline:none;box-shadow:3px 3px 0 var(--gold)}
+  .field + .field{margin-top:13px}
+
+  .btn{display:block;width:100%;font-family:'Fraunces',serif;font-weight:900;font-size:18px;
+       padding:15px;border:2px solid var(--ink);border-radius:11px;background:var(--gold);color:var(--ink);
+       cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .08s,box-shadow .08s;margin-top:15px}
+  .btn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+  .btn.ghost{background:var(--paper)}
+  .btn:disabled{opacity:.45;cursor:default;box-shadow:4px 4px 0 var(--ink)}
+  .btn.big{font-size:22px;padding:20px}
+
+  /* ---- slot chooser ---- */
+  .slots{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .slot{border:2px solid var(--ink);border-radius:11px;background:var(--paper);padding:15px 10px;text-align:center;cursor:pointer;
+        transition:transform .1s,background .12s}
+  .slot .big{font-family:'Fraunces',serif;font-weight:900;font-size:30px;line-height:1}
+  .slot .sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);margin-top:5px;font-weight:700}
+  .slot.sel{background:var(--ink);color:var(--paper)}
+  .slot.sel .sub{color:var(--gold)}
+  .slot.taken{opacity:.5}
+  .slot:active{transform:scale(.98)}
+
+  /* ---- meta bar ---- */
+  .meta{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+  .pill{background:var(--ink);color:var(--paper);padding:5px 10px;border-radius:20px;font-weight:700;font-size:11px;letter-spacing:.05em;white-space:nowrap}
+  .pill.score{background:var(--green);color:#fff}
+  .pill.role-actor{background:var(--gold);color:var(--ink)}
+  .pill.role-observer{background:var(--violet);color:#fff}
+
+  /* ---- role banner ---- */
+  .rolebanner{border:2px solid var(--ink);border-radius:12px;padding:13px 14px;margin-bottom:13px;text-align:center}
+  .rolebanner.actor{background:var(--gold)}
+  .rolebanner.observer{background:var(--violet);color:#fff}
+  .rolebanner .r1{font-family:'Fraunces',serif;font-weight:900;font-size:23px;line-height:1}
+  .rolebanner .r2{font-size:11px;letter-spacing:.1em;margin-top:5px;opacity:.85}
+
+  /* ---- choice cards ---- */
+  .stack{display:grid;gap:10px}
+  .choice{font-family:'Space Mono',monospace;font-size:14px;line-height:1.5;padding:14px;
+    border:2px solid var(--ink);border-radius:11px;background:var(--paper);color:var(--ink);
+    cursor:pointer;text-align:left;transition:transform .1s,background .12s;width:100%;display:block}
+  .choice:active{transform:scale(.99)}
+  .choice.sel{background:var(--ink);color:var(--paper)}
+  .choice.right{background:var(--green);color:#fff;border-color:var(--green)}
+  .choice.wrong{background:var(--red);color:#fff;border-color:var(--red)}
+  .choice:disabled{cursor:default}
+  .choice .fam{display:block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--gold-deep);margin-bottom:5px}
+  .choice.sel .fam{color:var(--gold)}
+  .choice.right .fam,.choice.wrong .fam{color:rgba(255,255,255,.8)}
+  .choice.phrase{font-family:'Fraunces',serif;font-weight:900;font-size:19px;text-align:center}
+
+  .sectlabel{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--gold-deep);margin:16px 0 8px}
+  .sectlabel:first-child{margin-top:0}
+
+  /* ---- prep countdown ---- */
+  .prep{text-align:center;padding:14px 0 6px}
+  .prep .num{font-family:'Fraunces',serif;font-weight:900;font-size:118px;line-height:.9;color:var(--gold-deep)}
+  .prep .num.hot{color:var(--red)}
+  .prep .instr{font-family:'Fraunces',serif;font-size:19px;line-height:1.35;margin-top:10px}
+  .prep .sub{font-size:11px;line-height:1.7;color:#5a4c3a;margin-top:10px}
+  .ring{height:8px;border:2px solid var(--ink);border-radius:20px;background:var(--paper);overflow:hidden;margin-top:14px}
+  .ring > i{display:block;height:100%;background:var(--gold);width:100%}
+
+  /* ---- perform ---- */
+  .perform{text-align:center}
+  .perform .go{font-family:'Fraunces',serif;font-weight:900;font-size:30px;color:var(--red);letter-spacing:.02em}
+  .linebox{background:var(--ink);color:var(--paper);border-radius:14px;padding:26px 18px;margin:14px 0}
+  .linebox .l1{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:12px}
+  .linebox .l2{font-family:'Fraunces',serif;font-weight:900;font-size:33px;line-height:1.15}
+  .secretbox{border:2px dashed var(--gold-deep);border-radius:11px;padding:11px 13px;font-size:12px;line-height:1.55;text-align:left;background:rgba(200,150,30,.1)}
+  .secretbox b{display:block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:5px}
+
+  /* ---- waiting ---- */
+  .waiting{text-align:center;padding:26px 8px}
+  .waiting .ic{font-size:40px;line-height:1}
+  .waiting h3{font-family:'Fraunces',serif;font-weight:900;font-size:22px;margin:12px 0 7px;line-height:1.15}
+  .waiting p{font-size:12px;line-height:1.7;color:#5a4c3a}
+  .dots3{display:inline-block;width:1.6em;text-align:left}
+
+  /* ---- stars ---- */
+  .stars{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px}
+  .star{border:2px solid var(--ink);border-radius:11px;background:var(--paper);padding:13px 6px;cursor:pointer;text-align:center}
+  .star .s1{font-size:20px;line-height:1.1}
+  .star .s2{font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--gold-deep);margin-top:6px;line-height:1.3}
+  .star:active{transform:scale(.98)}
+  .star.sel{background:var(--gold)}
+
+  /* ---- result ---- */
+  .verdict{border-radius:13px;border:2px solid var(--ink);padding:17px;text-align:center;margin-bottom:12px}
+  .verdict.good{background:#d6ead7;border-color:var(--green)}
+  .verdict.bad{background:var(--red-soft);border-color:var(--red)}
+  .verdict .v1{font-family:'Fraunces',serif;font-weight:900;font-size:26px;line-height:1.1}
+  .verdict .v2{font-size:12px;line-height:1.7;margin-top:8px}
+  .ptsline{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:11px}
+  .ptag{background:var(--ink);color:var(--paper);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:700}
+  .revealrow{font-size:12px;line-height:1.65;padding:11px 13px;border-radius:10px;background:var(--paper);border:2px solid var(--ink);margin-bottom:9px}
+  .revealrow b{color:var(--gold-deep);font-size:9px;letter-spacing:.2em;text-transform:uppercase;display:block;margin-bottom:4px}
+
+  .hide{display:none!important}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(180%);
+         background:var(--ink);color:var(--paper);padding:12px 20px;border-radius:30px;font-size:13px;
+         transition:transform .3s;z-index:60;max-width:90%;text-align:center;font-weight:700}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.warn{background:var(--red);color:#fff}
+  footer{text-align:center;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-deep);margin-top:16px;opacity:.75;line-height:1.9}
+  footer a{color:inherit}
+  .tinybtn{background:none;border:none;font:inherit;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-deep);cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Satriwithaya · English Program</div>
+    <h1>Step Into <em>Character</em></h1>
+    <div class="bar-deco"></div>
+  </header>
+
+  <!-- ============ JOIN ============ -->
+  <section id="scJoin" class="card">
+    <div class="field">
+      <label for="teamSel">Your Team</label>
+      <select id="teamSel"></select>
+    </div>
+    <div class="field">
+      <label for="teamName">Team Name (optional)</label>
+      <input type="text" id="teamName" placeholder="e.g. The Drama Llamas" maxlength="24" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>Which phone is this?</label>
+      <div class="slots">
+        <div class="slot" data-slot="A"><div class="big">A</div><div class="sub" id="slotAsub">Player A</div></div>
+        <div class="slot" data-slot="B"><div class="big">B</div><div class="sub" id="slotBsub">Player B</div></div>
+      </div>
+    </div>
+    <button class="btn" id="joinBtn">Enter the Arena</button>
+    <button class="btn ghost" id="soloBtn">Practise Solo</button>
+  </section>
+
+  <!-- ============ PLAY ============ -->
+  <section id="scPlay" class="card hide">
+    <div class="meta">
+      <span class="pill" id="pillTeam">—</span>
+      <span class="pill" id="pillRound">Round 1</span>
+      <span class="pill" id="pillRole">—</span>
+      <span class="pill score" id="pillScore">0 pts</span>
+    </div>
+
+    <div id="body"></div>
+  </section>
+
+  <footer>
+    <span id="connNote">Connecting…</span><br>
+    <button class="tinybtn" id="leaveBtn">Leave / change phone</button>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG — paste your deployed Apps Script /exec URL here.
+   Leave it as PASTE_URL_HERE to run in offline demo mode.
+   ============================================================ */
+const API_URL = "PASTE_URL_HERE";
+
+/* ============================================================
+   GAME DATA BANK  (see gamedata.js for the design rationale)
+   ============================================================ */
+const FAMILIES = {
+  EMBARRASSED:{label:'Embarrassed',emoji:'\u{1F633}'},
+  THRILLED:{label:'Thrilled',emoji:'\u{1F929}'},
+  TERRIFIED:{label:'Terrified',emoji:'\u{1F631}'},
+  EXHAUSTED:{label:'Exhausted',emoji:'\u{1F624}'},
+  GUILTY:{label:'Guilty',emoji:'\u{1F62C}'},
+  ANNOYED:{label:'Annoyed',emoji:'\u{1F644}'},
+  CONFUSED:{label:'Confused',emoji:'\u{1F615}'},
+  DISGUSTED:{label:'Disgusted',emoji:'\u{1F922}'},
+  NERVOUS:{label:'Nervous',emoji:'\u{1F630}'},
+  PROUD:{label:'Proud',emoji:'\u{1F60F}'}
+};
+const SCENARIOS = [
+  {id:'s01',family:'EMBARRASSED',text:'You dropped your lunch tray and the whole canteen went silent.'},
+  {id:'s02',family:'EMBARRASSED',text:'You waved back at someone who was waving at the person behind you.'},
+  {id:'s03',family:'EMBARRASSED',text:'You just called your teacher “Mum” in front of the whole class.'},
+  {id:'s04',family:'THRILLED',text:'You got 100% on a test you were certain you had failed.'},
+  {id:'s05',family:'THRILLED',text:'You just found a 500 baht note in an old jacket pocket.'},
+  {id:'s06',family:'THRILLED',text:'Your favourite singer just replied to your message online.'},
+  {id:'s07',family:'TERRIFIED',text:'There is an enormous spider on the wall, right beside your head.'},
+  {id:'s08',family:'TERRIFIED',text:'You are watching a horror film and the jump scare is coming.'},
+  {id:'s09',family:'TERRIFIED',text:'You are home alone and you just heard glass break downstairs.'},
+  {id:'s10',family:'EXHAUSTED',text:'You have just finished the 800 metre run and cannot catch your breath.'},
+  {id:'s11',family:'EXHAUSTED',text:'You are fighting to stay awake in the last class of the day.'},
+  {id:'s12',family:'EXHAUSTED',text:'You have carried heavy shopping bags up six flights of stairs.'},
+  {id:'s13',family:'GUILTY',text:'You snapped the teacher’s marker in half and nobody saw you.'},
+  {id:'s14',family:'GUILTY',text:'You ate the last slice of your sister’s birthday cake.'},
+  {id:'s15',family:'GUILTY',text:'You forgot your best friend’s birthday and they are walking towards you.'},
+  {id:'s16',family:'ANNOYED',text:'Someone has been kicking the back of your chair for ten minutes.'},
+  {id:'s17',family:'ANNOYED',text:'Your friend has told you exactly the same story three times today.'},
+  {id:'s18',family:'ANNOYED',text:'The wifi has dropped four times while you were uploading your homework.'},
+  {id:'s19',family:'CONFUSED',text:'You are lost in a strange city and your phone just died.'},
+  {id:'s20',family:'CONFUSED',text:'You have been walking confidently in the wrong direction for ten minutes.'},
+  {id:'s21',family:'CONFUSED',text:'You opened your bag and somebody else’s books are inside it.'},
+  {id:'s22',family:'DISGUSTED',text:'You can smell something terrible but you do not want to be rude.'},
+  {id:'s23',family:'DISGUSTED',text:'You bit into your sandwich and the filling has gone off.'},
+  {id:'s24',family:'DISGUSTED',text:'You stepped into a deep puddle and your socks are completely soaked.'},
+  {id:'s25',family:'NERVOUS',text:'You are about to give a speech in front of the whole school.'},
+  {id:'s26',family:'NERVOUS',text:'You are waiting outside the office because the principal sent for you.'},
+  {id:'s27',family:'NERVOUS',text:'The teacher is reading out the exam results, starting with yours.'},
+  {id:'s28',family:'PROUD',text:'You just won the school competition and you are trying to stay modest.'},
+  {id:'s29',family:'PROUD',text:'You warned your friend this would happen, and it has just happened.'},
+  {id:'s30',family:'PROUD',text:'You are wearing brand new shoes that you think look incredible.'}
+];
+const PHRASES = [
+  {id:'f01',text:'What time is it?'},{id:'f02',text:'I’ll be right back.'},
+  {id:'f03',text:'Let’s sit over there.'},{id:'f04',text:'Can you hold this?'},
+  {id:'f05',text:'It’s on my desk.'},{id:'f06',text:'I’ll text you later.'},
+  {id:'f07',text:'Where is my bag?'},{id:'f08',text:'Are you going home now?'},
+  {id:'f09',text:'What day is it today?'},{id:'f10',text:'I’ll meet you outside.'},
+  {id:'f11',text:'Do you have a pen?'},{id:'f12',text:'Can I see your notes?'},
+  {id:'f13',text:'The bell just rang.'},{id:'f14',text:'It’s on the second floor.'},
+  {id:'f15',text:'Please open the window.'},{id:'f16',text:'I really don’t know.'},
+  {id:'f17',text:'Wait here for a minute.'},{id:'f18',text:'That is my brother.'},
+  {id:'f19',text:'It is the blue one.'},{id:'f20',text:'I finished it last night.'},
+  {id:'f21',text:'Turn left at the corner.'},{id:'f22',text:'She said the same thing.'},
+  {id:'f23',text:'It’s in my other bag.'},{id:'f24',text:'Give me two minutes.'},
+  {id:'f25',text:'Come and look at this.'},{id:'f26',text:'I’m going to the library.'},
+  {id:'f27',text:'That is the wrong one.'},{id:'f28',text:'It happens every Tuesday.'},
+  {id:'f29',text:'My name is on it.'},{id:'f30',text:'Just tell me later.'}
+];
+const SCEN = {}; SCENARIOS.forEach(s=>SCEN[s.id]=s);
+const PHR  = {}; PHRASES.forEach(p=>PHR[p.id]=p);
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* 3 distractors, each from a DIFFERENT emotion family than the answer.
+   This is what makes the guess readable from acting alone. */
+function buildOptions(correctId){
+  const fam = SCEN[correctId].family;
+  const others = shuffle(Object.keys(FAMILIES).filter(f=>f!==fam)).slice(0,3);
+  const picks = others.map(f=>{
+    const pool = SCENARIOS.filter(s=>s.family===f);
+    return pool[Math.floor(Math.random()*pool.length)].id;
+  });
+  return shuffle([correctId,...picks]);
+}
+/* Two scenarios from two different families, so the actor has a real choice. */
+function drawHand(){
+  const fams = shuffle(Object.keys(FAMILIES)).slice(0,2);
+  const scenarioIds = fams.map(f=>{
+    const pool = SCENARIOS.filter(s=>s.family===f);
+    return pool[Math.floor(Math.random()*pool.length)].id;
+  });
+  const phraseIds = shuffle(PHRASES.map(p=>p.id)).slice(0,2);
+  return {scenarioIds, phraseIds};
+}
+
+/* ============================================================
+   LOCAL SESSION
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const PREP_MS = 10000;
+
+let deviceId = '';
+try{
+  deviceId = localStorage.getItem('sica_device') || '';
+  if(!deviceId){ deviceId = 'd'+Math.random().toString(36).slice(2,11)+Date.now().toString(36); localStorage.setItem('sica_device',deviceId); }
+}catch(e){ deviceId = 'd'+Math.random().toString(36).slice(2,11); }
+
+let myTeam = 0, mySlot = '', joined = false, solo = false;
+let state = null, timer = null, clockSkew = 0;
+let hand = null;                 // actor's local draw {scenarioIds, phraseIds}
+let redraws = 0;                 // capped, so one student cannot stall the pair
+const MAX_REDRAWS = 2;
+let pick = { scenario:null, phrase:null };
+let starPick = null;
+let lastRenderKey = '';
+let pollTimer = null, tickTimer = null;
+let watchUntil = 0;              // observer must watch before cards unlock
+let busy = false;
+
+/* ============================================================
+   NETWORK  (real GAS, or an in-memory demo backend)
+   ============================================================ */
+const LIVE = API_URL && API_URL.indexOf('PASTE_') !== 0;
+
+async function api(method, body, params){
+  if(!LIVE || solo) return demoApi(method, body, params);
+  let url = API_URL;
+  if(params) url += (url.indexOf('?')>-1?'&':'?') + params;
+  const opts = { method, redirect:'follow' };
+  if(method==='POST'){ opts.headers={'Content-Type':'text/plain;charset=utf-8'}; opts.body=JSON.stringify(body); }
+  const res = await fetch(url, opts);
+  const data = await res.json();
+  if(data && data.now) clockSkew = data.now - Date.now();
+  return data;
+}
+function srvNow(){ return Date.now() + clockSkew; }
+
+/* ---- Demo / solo-practice backend: same shape, all in memory.
+        The "partner" is played by the app so one student can rehearse. ---- */
+const demo = { st:null, autoT:null };
+function demoBlank(team){
+  return { team, name:'Practice', round:1, phase:'draw',
+           devices:{A:deviceId,B:'demo-partner'},
+           scenarioId:null, phraseId:null, options:[], guessId:null, correct:null, stars:null,
+           prepUntil:0, score:0, rounds:0, correctCount:0, starTotal:0 };
+}
+function demoPublic(){
+  const s = demo.st;
+  return { team:s.team, name:s.name, round:s.round, phase:s.phase,
+           actorSlot: (s.round%2===1)?'A':'B', observerSlot:(s.round%2===1)?'B':'A',
+           joinedA:true, joinedB:true,
+           scenarioId:s.scenarioId, phraseId:s.phraseId, options:s.options,
+           guessId:s.guessId, correct:s.correct, stars:s.stars, prepUntil:s.prepUntil,
+           score:s.score, rounds:s.rounds, correctCount:s.correctCount };
+}
+/* In solo mode this device always holds the acting slot, so the
+   student rehearses every round; the app guesses back. */
+function demoSyncSlots(){
+  const a = (demo.st.round%2===1)?'A':'B', b = (a==='A')?'B':'A';
+  demo.st.devices[a] = deviceId; demo.st.devices[b] = 'demo-partner';
+  mySlot = a;
+}
+async function demoApi(method, body, params){
+  if(!demo.st){ demo.st = demoBlank(myTeam||1); demoSyncSlots(); }
+  const s = demo.st;
+  if(method==='GET'){
+    if(s.phase==='prep' && Date.now()>=s.prepUntil){ s.phase='perform'; scheduleDemoGuess(); }
+    return { ok:true, state:demoPublic(), timer:{running:false,expirationMs:0}, now:Date.now() };
+  }
+  switch(body.action){
+    case 'join': demoSyncSlots(); if(body.name) s.name=body.name; break;
+    case 'lock':
+      s.scenarioId=body.scenarioId; s.phraseId=body.phraseId; s.options=body.options;
+      s.guessId=null; s.correct=null; s.stars=null;
+      s.prepUntil=Date.now()+PREP_MS; s.phase='prep'; break;
+    case 'guess':
+      if(s.phase==='perform' && s.guessId===null){ s.guessId=body.guessId; s.correct=(s.guessId===s.scenarioId); s.phase='rating'; }
+      break;
+    case 'rate': {
+      if(s.phase==='rating'){
+        const st=Math.max(1,Math.min(3,+body.stars||1));
+        s.stars=st; s.score += (s.correct?10:2) + ({1:1,2:3,3:5})[st];
+        s.rounds++; s.starTotal+=st; if(s.correct) s.correctCount++;
+        s.phase='result';
+      }
+      break;
+    }
+    case 'next':
+      if(s.phase==='result' && (!body.expectedRound || body.expectedRound===s.round)){
+        s.round++; s.phase='draw';
+        s.scenarioId=null;s.phraseId=null;s.options=[];s.guessId=null;s.correct=null;s.stars=null;s.prepUntil=0;
+        demoSyncSlots();
+      }
+      break;
+  }
+  return { ok:true, state:demoPublic(), timer:{running:false,expirationMs:0}, now:Date.now() };
+}
+/* the pretend partner guesses ~4s after the performance starts */
+function scheduleDemoGuess(){
+  clearTimeout(demo.autoT);
+  demo.autoT = setTimeout(()=>{
+    const s = demo.st;
+    if(!s || s.phase!=='perform' || s.guessId!==null) return;
+    const g = s.options[Math.floor(Math.random()*s.options.length)];
+    s.guessId=g; s.correct=(g===s.scenarioId); s.phase='rating';
+    // and rates a moment later
+    setTimeout(()=>{
+      if(demo.st.phase!=='rating') return;
+      const st = 1+Math.floor(Math.random()*3);
+      demo.st.stars=st; demo.st.score += (demo.st.correct?10:2)+({1:1,2:3,3:5})[st];
+      demo.st.rounds++; demo.st.starTotal+=st; if(demo.st.correct) demo.st.correctCount++;
+      demo.st.phase='result';
+    }, 1600);
+  }, 4200);
+}
+
+/* ============================================================
+   POLLING
+   ============================================================ */
+function myRole(){ return (state && mySlot===state.actorSlot) ? 'actor' : 'observer'; }
+
+/* Poll fast when we are waiting on the partner, slow when the ball
+   is in our court. Roughly halves the load on Apps Script. */
+function pollInterval(){
+  if(!state) return 1500;
+  const r = myRole(), p = state.phase;
+  const waiting =
+    (p==='lobby') ||
+    (p==='draw'   && r==='observer') ||
+    (p==='prep') ||
+    (p==='perform'&& r==='actor')   ||
+    (p==='rating' && r==='actor');
+  return waiting ? 1200 : 3000;
+}
+
+async function poll(){
+  clearTimeout(pollTimer);
+  try{
+    const r = await api('GET', null, 'action=state&team='+myTeam);
+    if(r && r.ok){
+      applyState(r.state, r.timer);
+      setConn('Live · Team '+myTeam+' · Phone '+mySlot);
+    }
+  }catch(e){
+    setConn('Reconnecting…');
+  }
+  pollTimer = setTimeout(poll, pollInterval());
+}
+
+function applyState(s, t){
+  const prevRound = state ? state.round : null;
+  const prevPhase = state ? state.phase : null;
+  state = s; timer = t;
+
+  if(prevRound !== null && s.round !== prevRound){   // new round → clear local scratch
+    hand = null; redraws = 0; pick = {scenario:null, phrase:null}; starPick = null;
+  }
+  if(prevPhase !== 'perform' && s.phase === 'perform'){
+    watchUntil = srvNow() + 3000;                    // observer watches before cards unlock
+  }
+  render();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  if(!state) return;
+  const role = myRole();
+
+  $('pillTeam').textContent = state.name || ('Team '+state.team);
+  $('pillRound').textContent = 'Round '+state.round;
+  $('pillScore').textContent = state.score+' pts';
+  const rp = $('pillRole');
+  rp.textContent = (role==='actor' ? '🎭 Actor' : '👀 Observer') + ' · ' + mySlot;
+  rp.className = 'pill role-'+role;
+
+  // Only rebuild the DOM when something meaningful changed — otherwise
+  // a 1.2s poll would steal the student's tap mid-selection.
+  const key = [state.round,state.phase,role,pick.scenario,pick.phrase,starPick,redraws,
+               hand?hand.scenarioIds.join(''):'', state.guessId, state.stars].join('|');
+  if(key === lastRenderKey) return;
+  lastRenderKey = key;
+
+  const b = $('body');
+  if(state.phase==='lobby')       b.innerHTML = viewLobby();
+  else if(state.phase==='draw')   b.innerHTML = role==='actor' ? viewDraw() : viewWait('🎭','Your partner is choosing','They are picking a secret situation and a line to say. Get ready to read them.');
+  else if(state.phase==='prep')   b.innerHTML = viewPrep(role);
+  else if(state.phase==='perform')b.innerHTML = role==='actor' ? viewPerform() : viewGuess();
+  else if(state.phase==='rating') b.innerHTML = role==='observer' ? viewRate() : viewWait('⭐','They are scoring your performance','Your partner is deciding how convincing you were.');
+  else if(state.phase==='result') b.innerHTML = viewResult(role);
+
+  wire();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function roleBanner(role){
+  return role==='actor'
+    ? '<div class="rolebanner actor"><div class="r1">You are the ACTOR</div><div class="r2">Show the feeling. Say only your line.</div></div>'
+    : '<div class="rolebanner observer"><div class="r1">You are the OBSERVER</div><div class="r2">Watch your partner. Read the feeling.</div></div>';
+}
+
+function viewLobby(){
+  const meA = mySlot==='A';
+  const partner = meA ? state.joinedB : state.joinedA;
+  return '<div class="waiting"><div class="ic">📱</div>'+
+    '<h3>'+(partner?'Ready!':'Waiting for Phone '+(meA?'B':'A')+'<span class="dots3">…</span>')+'</h3>'+
+    '<p>'+(partner
+      ? 'Both phones are connected. The round is about to begin.'
+      : 'Ask your partner to open this page, pick <b>Team '+myTeam+'</b> and tap <b>Phone '+(meA?'B':'A')+'</b>.')+
+    '</p></div>';
+}
+
+function viewDraw(){
+  if(!hand){
+    return roleBanner('actor')+
+      '<div class="waiting"><div class="ic">🃏</div><h3>Your turn to perform</h3>'+
+      '<p>You will get two situations and two lines.<br>Choose one of each — keep them secret!</p></div>'+
+      '<button class="btn big" id="drawBtn">Draw My Cards</button>';
+  }
+  let h = roleBanner('actor');
+  h += '<div class="sectlabel">1 · Choose a situation (keep it secret)</div><div class="stack">';
+  hand.scenarioIds.forEach(id=>{
+    const s = SCEN[id];
+    h += '<button class="choice'+(pick.scenario===id?' sel':'')+'" data-sc="'+id+'">'+
+         '<span class="fam">'+FAMILIES[s.family].emoji+' '+FAMILIES[s.family].label+'</span>'+esc(s.text)+'</button>';
+  });
+  h += '</div><div class="sectlabel">2 · Choose your line</div><div class="stack">';
+  hand.phraseIds.forEach(id=>{
+    h += '<button class="choice phrase'+(pick.phrase===id?' sel':'')+'" data-ph="'+id+'">'+esc(PHR[id].text)+'</button>';
+  });
+  h += '</div>';
+  if(redraws < MAX_REDRAWS){
+    h += '<button class="btn" id="redrawBtn" style="background:var(--paper)">↻ Draw different cards ('+(MAX_REDRAWS-redraws)+' left)</button>';
+  }
+  h += '<button class="btn" id="lockBtn"'+((pick.scenario&&pick.phrase)?'':' disabled')+'>Lock It In →</button>';
+  return h;
+}
+
+function viewPrep(role){
+  const left = Math.max(0, Math.ceil((state.prepUntil - srvNow())/1000));
+  const pct = Math.max(0, Math.min(1, (state.prepUntil - srvNow())/PREP_MS));
+  if(role==='actor'){
+    return '<div class="prep"><div class="num'+(left<=3?' hot':'')+'" id="prepNum">'+left+'</div>'+
+      '<div class="instr">Silence.<br>Step into character.</div>'+
+      '<div class="sub">Feel it in your <b>shoulders</b>, your <b>face</b>, your <b>breathing</b>.<br>Do not say anything yet.</div>'+
+      '<div class="ring"><i id="prepBar" style="width:'+(pct*100)+'%"></i></div></div>';
+  }
+  return '<div class="prep"><div class="num'+(left<=3?' hot':'')+'" id="prepNum">'+left+'</div>'+
+    '<div class="instr">Eyes up.<br>Watch your partner.</div>'+
+    '<div class="sub">Do not look at your phone when they perform.<br>Watch their face and body — that is the clue.</div>'+
+    '<div class="ring"><i id="prepBar" style="width:'+(pct*100)+'%"></i></div></div>';
+}
+
+function viewPerform(){
+  const s = SCEN[state.scenarioId];
+  return '<div class="perform"><div class="go">PERFORM NOW!</div>'+
+    '<div class="linebox"><div class="l1">Say only this line</div><div class="l2">'+esc(PHR[state.phraseId].text)+'</div></div>'+
+    '<div class="secretbox"><b>'+FAMILIES[s.family].emoji+' Your secret situation</b>'+esc(s.text)+'</div>'+
+    '<div class="waiting" style="padding:20px 8px 4px"><div class="ic">👀</div>'+
+    '<h3>Say it as many times as you like</h3>'+
+    '<p>Waiting for your partner to guess<span class="dots3">…</span></p></div></div>';
+}
+
+function viewGuess(){
+  const locked = srvNow() < watchUntil;
+  let h = '<div class="sectlabel">Which situation are they in?</div>';
+  h += '<div class="stack">';
+  state.options.forEach(id=>{
+    const s = SCEN[id];
+    h += '<button class="choice" data-gs="'+id+'"'+(locked?' disabled':'')+'>'+
+         '<span class="fam">'+FAMILIES[s.family].emoji+' '+FAMILIES[s.family].label+'</span>'+esc(s.text)+'</button>';
+  });
+  h += '</div>';
+  h += '<div class="waiting" style="padding:14px 8px 0"><p id="watchNote">'+
+       (locked ? '👀 <b>Watch first.</b> Cards unlock in a moment…' : 'Take your time — there is no rush.')+'</p></div>';
+  return h;
+}
+
+function viewRate(){
+  const s = SCEN[state.scenarioId];
+  const good = state.correct;
+  let h = '<div class="verdict '+(good?'good':'bad')+'">'+
+    '<div class="v1">'+(good?'✓ You read them right!':'✗ Not this time')+'</div>'+
+    '<div class="v2">'+(good?'You will both score for that.':'They were actually: <b>'+esc(s.text)+'</b>')+'</div></div>';
+  h += '<div class="sectlabel">Now score their acting</div>';
+  h += '<div class="stars">'+
+    '<div class="star'+(starPick===1?' sel':'')+'" data-st="1"><div class="s1">⭐</div><div class="s2">Shy<br>attempt</div></div>'+
+    '<div class="star'+(starPick===2?' sel':'')+'" data-st="2"><div class="s1">⭐⭐</div><div class="s2">Good<br>effort</div></div>'+
+    '<div class="star'+(starPick===3?' sel':'')+'" data-st="3"><div class="s1">⭐⭐⭐</div><div class="s2">Fully in<br>character</div></div>'+
+    '</div>';
+  h += '<button class="btn" id="rateBtn"'+(starPick?'':' disabled')+'>Give the Score →</button>';
+  return h;
+}
+
+function viewResult(role){
+  const s = SCEN[state.scenarioId];
+  const good = state.correct;
+  const base = good ? 10 : 2;
+  const bonus = {1:1,2:3,3:5}[state.stars] || 0;
+  let h = '<div class="verdict '+(good?'good':'bad')+'">'+
+    '<div class="v1">'+(good?'✓ Read correctly!':'✗ Missed it')+'</div>'+
+    '<div class="v2">'+(role==='actor'
+        ? (good?'Your partner read you perfectly.':'Your partner guessed something else — push the feeling further next time.')
+        : (good?'You read your partner perfectly.':'Look at their face and shoulders next time.'))+'</div>'+
+    '<div class="ptsline"><span class="ptag">'+(good?'+10 correct':'+2 good try')+'</span>'+
+    '<span class="ptag">+'+bonus+' acting ('+ '⭐'.repeat(state.stars||0) +')</span>'+
+    '<span class="ptag">= +'+(base+bonus)+' pts</span></div></div>';
+
+  h += '<div class="revealrow"><b>'+FAMILIES[s.family].emoji+' The situation was</b>'+esc(s.text)+'</div>';
+  h += '<div class="revealrow"><b>The line</b>“'+esc(PHR[state.phraseId].text)+'”</div>';
+  if(!good && state.guessId){
+    h += '<div class="revealrow"><b>They guessed</b>'+esc(SCEN[state.guessId].text)+'</div>';
+  }
+  const nextRole = (mySlot === (((state.round+1)%2===1)?'A':'B')) ? 'ACTOR' : 'OBSERVER';
+  h += '<button class="btn" id="nextBtn">Next Round · you will be the '+nextRole+' →</button>';
+  return h;
+}
+
+function viewWait(ic, title, sub){
+  return '<div class="waiting"><div class="ic">'+ic+'</div><h3>'+title+'<span class="dots3">…</span></h3><p>'+sub+'</p></div>';
+}
+
+function esc(t){ return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+function wire(){
+  const b = $('body');
+
+  const draw = $('drawBtn');
+  if(draw) draw.onclick = ()=>{ hand = drawHand(); pick={scenario:null,phrase:null}; lastRenderKey=''; render(); };
+
+  const redraw = $('redrawBtn');
+  if(redraw) redraw.onclick = ()=>{
+    if(redraws >= MAX_REDRAWS) return;
+    redraws++; hand = drawHand(); pick={scenario:null,phrase:null}; lastRenderKey=''; render();
+  };
+
+  b.querySelectorAll('[data-sc]').forEach(el=>el.onclick=()=>{ pick.scenario=el.dataset.sc; lastRenderKey=''; render(); });
+  b.querySelectorAll('[data-ph]').forEach(el=>el.onclick=()=>{ pick.phrase=el.dataset.ph; lastRenderKey=''; render(); });
+
+  const lock = $('lockBtn');
+  if(lock) lock.onclick = ()=> once(lock, async ()=>{
+    const r = await api('POST', { action:'lock', team:myTeam, device:deviceId,
+      scenarioId:pick.scenario, phraseId:pick.phrase, options:buildOptions(pick.scenario) });
+    if(r && r.ok) applyState(r.state, r.timer); else toast((r&&r.error)||'Could not lock in','warn');
+  });
+
+  b.querySelectorAll('[data-gs]').forEach(el=>el.onclick=()=> once(el, async ()=>{
+    const r = await api('POST', { action:'guess', team:myTeam, device:deviceId, guessId:el.dataset.gs });
+    if(r && r.ok) applyState(r.state, r.timer); else toast((r&&r.error)||'Could not send guess','warn');
+  }));
+
+  b.querySelectorAll('[data-st]').forEach(el=>el.onclick=()=>{ starPick=+el.dataset.st; lastRenderKey=''; render(); });
+
+  const rate = $('rateBtn');
+  if(rate) rate.onclick = ()=> once(rate, async ()=>{
+    const r = await api('POST', { action:'rate', team:myTeam, device:deviceId, stars:starPick });
+    if(r && r.ok){ if(r.points) toast('+'+r.points+' points!'); applyState(r.state, r.timer); }
+    else toast((r&&r.error)||'Could not send score','warn');
+  });
+
+  const next = $('nextBtn');
+  if(next) next.onclick = ()=> once(next, async ()=>{
+    const r = await api('POST', { action:'next', team:myTeam, device:deviceId, expectedRound:state.round });
+    if(r && r.ok) applyState(r.state, r.timer);
+  });
+}
+
+/* Guards every mutating tap: disables the control, blocks re-entry.
+   Double-taps and both-students-tapping cannot double-fire. */
+async function once(el, fn){
+  if(busy) return;
+  busy = true; el.disabled = true;
+  try{ await fn(); }
+  catch(e){ toast('Network hiccup — try again','warn'); }
+  finally{ busy = false; el.disabled = false; }
+}
+
+/* ============================================================
+   1-SECOND TICKER (countdown + card unlock, no full re-render)
+   ============================================================ */
+function tick(){
+  if(!state) return;
+  if(state.phase==='prep'){
+    const left = Math.max(0, Math.ceil((state.prepUntil - srvNow())/1000));
+    const n = $('prepNum'), bar = $('prepBar');
+    if(n){ n.textContent = left; n.className = 'num'+(left<=3?' hot':''); }
+    if(bar) bar.style.width = Math.max(0,Math.min(1,(state.prepUntil - srvNow())/PREP_MS))*100+'%';
+  }
+  if(state.phase==='perform' && myRole()==='observer'){
+    if(srvNow() >= watchUntil){
+      const locked = document.querySelector('[data-gs][disabled]');
+      if(locked){ lastRenderKey=''; render(); }
+    }
+  }
+}
+
+/* ============================================================
+   JOIN SCREEN
+   ============================================================ */
+(function initJoin(){
+  const sel = $('teamSel');
+  for(let t=1;t<=15;t++){
+    const o=document.createElement('option'); o.value=t; o.textContent='Team '+t; sel.appendChild(o);
+  }
+  try{
+    const lt = localStorage.getItem('sica_team'); if(lt) sel.value = lt;
+    const ln = localStorage.getItem('sica_name'); if(ln) $('teamName').value = ln;
+    const ls = localStorage.getItem('sica_slot'); if(ls) selectSlot(ls);
+  }catch(e){}
+  document.querySelectorAll('.slot').forEach(el=> el.onclick = ()=> selectSlot(el.dataset.slot));
+  setConn(LIVE ? 'Ready' : 'Demo mode · set API_URL for live play');
+})();
+
+function selectSlot(s){
+  mySlot = s;
+  document.querySelectorAll('.slot').forEach(el=> el.classList.toggle('sel', el.dataset.slot===s));
+}
+
+$('joinBtn').onclick = async ()=>{
+  if(!mySlot){ toast('Tap Phone A or Phone B','warn'); return; }
+  myTeam = Number($('teamSel').value);
+  solo = false;
+  const name = $('teamName').value.trim();
+  try{
+    localStorage.setItem('sica_team',myTeam); localStorage.setItem('sica_slot',mySlot);
+    if(name) localStorage.setItem('sica_name',name);
+  }catch(e){}
+  $('joinBtn').disabled = true; $('joinBtn').textContent = 'Joining…';
+  try{
+    const r = await api('POST', { action:'join', team:myTeam, slot:mySlot, device:deviceId, name:name||undefined });
+    if(!r || !r.ok) throw new Error((r&&r.error)||'join failed');
+    joined = true;
+    $('scJoin').classList.add('hide'); $('scPlay').classList.remove('hide');
+    applyState(r.state, r.timer);
+    poll();
+    clearInterval(tickTimer); tickTimer = setInterval(tick, 250);
+  }catch(e){
+    toast('Could not reach the server','warn');
+  }finally{
+    $('joinBtn').disabled = false; $('joinBtn').textContent = 'Enter the Arena';
+  }
+};
+
+$('soloBtn').onclick = async ()=>{
+  myTeam = Number($('teamSel').value) || 1;
+  solo = true; mySlot = 'A'; demo.st = null;
+  const r = await api('POST', { action:'join', team:myTeam, slot:'A', device:deviceId, name:'Practice' });
+  joined = true;
+  $('scJoin').classList.add('hide'); $('scPlay').classList.remove('hide');
+  applyState(r.state, r.timer);
+  setConn('Solo practice · scores are not saved');
+  poll();
+  clearInterval(tickTimer); tickTimer = setInterval(tick, 250);
+};
+
+$('leaveBtn').onclick = ()=>{
+  clearTimeout(pollTimer); clearInterval(tickTimer);
+  joined=false; state=null; lastRenderKey=''; solo=false; demo.st=null;
+  $('scPlay').classList.add('hide'); $('scJoin').classList.remove('hide');
+  setConn(LIVE?'Ready':'Demo mode · set API_URL for live play');
+};
+
+function setConn(t){ $('connNote').textContent = t; }
+function toast(msg, kind){
+  const t=$('toast'); t.textContent=msg;
+  t.className='toast show'+(kind?' '+kind:'');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.className='toast'+(kind?' '+kind:''),2200);
+}
+
+/* Pause polling when the phone is in a pocket; resume instantly on return. */
+document.addEventListener('visibilitychange', ()=>{
+  if(!joined) return;
+  if(document.hidden){ clearTimeout(pollTimer); }
+  else { poll(); }
+});
+</script>
+</body>
+</html>
