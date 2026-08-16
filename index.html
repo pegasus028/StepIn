@@ -70,12 +70,6 @@
   .pill.streak.on{display:inline-block;animation:flamepop .5s}
   @keyframes flamepop{0%{transform:scale(.6)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
 
-  .timesup{background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:11px;
-           padding:11px 13px;margin-bottom:12px;text-align:center;font-weight:700;font-size:12px;
-           letter-spacing:.08em;line-height:1.6;display:none}
-  .timesup.on{display:block}
-  .timesup b{font-family:'Fraunces',serif;font-weight:900;font-size:17px;display:block;letter-spacing:0;margin-bottom:3px}
-
   /* ---- role banner ---- */
   .rolebanner{border:2px solid var(--ink);border-radius:12px;padding:13px 14px;margin-bottom:13px;text-align:center}
   .rolebanner.actor{background:var(--gold)}
@@ -103,7 +97,7 @@
 
   /* ---- prep countdown ---- */
   .prep{text-align:center;padding:14px 0 6px}
-  .prep .num{font-family:'Fraunces',serif;font-weight:900;font-size:118px;line-height:.9;color:var(--gold-deep)}
+  .prep .num{font-family:'Fraunces',serif;font-weight:900;font-size:86px;line-height:.9;color:var(--gold-deep)}
   .prep .num.hot{color:var(--red)}
   .prep .instr{font-family:'Fraunces',serif;font-size:19px;line-height:1.35;margin-top:10px}
   .prep .sub{font-size:11px;line-height:1.7;color:#5a4c3a;margin-top:10px}
@@ -144,6 +138,15 @@
   .ptag{background:var(--ink);color:var(--paper);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:700}
   .revealrow{font-size:12px;line-height:1.65;padding:11px 13px;border-radius:10px;background:var(--paper);border:2px solid var(--ink);margin-bottom:9px}
   .revealrow b{color:var(--gold-deep);font-size:9px;letter-spacing:.2em;text-transform:uppercase;display:block;margin-bottom:4px}
+
+  /* ---- round ended ---- */
+  .ended{text-align:center;padding:22px 10px}
+  .ended .ic{font-size:52px;line-height:1}
+  .ended h3{font-family:'Fraunces',serif;font-weight:900;font-size:30px;margin:14px 0 8px;line-height:1.1;color:var(--red)}
+  .ended .lead{font-family:'Fraunces',serif;font-size:21px;line-height:1.35;margin-bottom:16px}
+  .ended .finals{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+  .ended .finals span{background:var(--ink);color:var(--paper);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700}
+  .ended .note{font-size:11px;line-height:1.7;color:#5a4c3a;margin-top:16px}
 
   .hide{display:none!important}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(180%);
@@ -196,7 +199,6 @@
       <span class="pill score" id="pillScore">0 pts</span>
     </div>
 
-    <div class="timesup" id="timesUp"><b>⏱ Time is up!</b>Finish this round, then look at the board.</div>
 
     <div id="body"></div>
   </section>
@@ -311,7 +313,7 @@ function drawHand(){
    LOCAL SESSION
    ============================================================ */
 const $ = id => document.getElementById(id);
-const PREP_MS = 10000;
+const PREP_MS = 3000;   // must match CFG.PREP_MS in Code.gs
 
 let deviceId = '';
 try{
@@ -380,7 +382,7 @@ async function demoApi(method, body, params){
   const s = demo.st;
   if(method==='GET'){
     if(s.phase==='prep' && Date.now()>=s.prepUntil){ s.phase='perform'; scheduleDemoGuess(); }
-    return { ok:true, state:demoPublic(), timer:{running:false,expirationMs:0}, now:Date.now() };
+    return { ok:true, state:demoPublic(), timer:{state:'idle',running:false,expirationMs:0}, now:Date.now() };
   }
   switch(body.action){
     case 'join': demoSyncSlots(); if(body.name) s.name=body.name; break;
@@ -408,7 +410,7 @@ async function demoApi(method, body, params){
       }
       break;
   }
-  return { ok:true, state:demoPublic(), timer:{running:false,expirationMs:0}, now:Date.now() };
+  return { ok:true, state:demoPublic(), timer:{state:'idle',running:false,expirationMs:0}, now:Date.now() };
 }
 /* the pretend partner guesses ~4s after the performance starts */
 function scheduleDemoGuess(){
@@ -437,6 +439,7 @@ function myRole(){ return (state && mySlot===state.actorSlot) ? 'actor' : 'obser
 /* Poll fast when we are waiting on the partner, slow when the ball
    is in our court. Roughly halves the load on Apps Script. */
 function pollInterval(){
+  if(timer && timer.state === 'finished') return 3000;
   if(!state) return 1500;
   const r = myRole(), p = state.phase;
   const waiting =
@@ -492,25 +495,26 @@ function render(){
   if((state.streak||0) >= 2){ sp.classList.add('on'); sp.textContent = '🔥 '+state.streak; }
   else sp.classList.remove('on');
 
-  $('timesUp').classList.toggle('on', !!(timer && timer.state === 'finished'));
-
   const rp = $('pillRole');
   rp.textContent = (role==='actor' ? '🎭 Actor' : '👀 Observer') + ' · ' + mySlot;
   rp.className = 'pill role-'+role;
 
   // Only rebuild the DOM when something meaningful changed — otherwise
   // a 1.2s poll would steal the student's tap mid-selection.
-  const key = [state.round,state.phase,role,pick.scenario,pick.phrase,starPick,redraws,
+  const ended = !!(timer && timer.state === 'finished');
+
+  const key = [ended,state.round,state.phase,role,pick.scenario,pick.phrase,starPick,redraws,
                hand?hand.scenarioIds.join(''):'', state.guessId, state.stars].join('|');
   if(key === lastRenderKey) return;
   lastRenderKey = key;
 
   const b = $('body');
-  if(state.phase==='lobby')       b.innerHTML = viewLobby();
+  if(ended)                       b.innerHTML = viewEnded();   // nothing else is reachable
+  else if(state.phase==='lobby')  b.innerHTML = viewLobby();
   else if(state.phase==='draw')   b.innerHTML = role==='actor' ? viewDraw() : viewWait('🎭','Your partner is choosing','They are picking a secret situation and a line to say. Get ready to read them.');
   else if(state.phase==='prep')   b.innerHTML = viewPrep(role);
   else if(state.phase==='perform')b.innerHTML = role==='actor' ? viewPerform() : viewGuess();
-  else if(state.phase==='rating') b.innerHTML = role==='observer' ? viewRate() : viewWait('⭐','They are scoring your performance','Your partner is deciding how convincing you were.');
+  else if(state.phase==='rating') b.innerHTML = role==='observer' ? viewRate() : viewActorVerdict();
   else if(state.phase==='result') b.innerHTML = viewResult(role);
 
   wire();
@@ -560,27 +564,36 @@ function viewDraw(){
   return h;
 }
 
+/* The actor's working card: their secret situation and the line they must say.
+   It goes up the moment they lock in and stays up through the countdown and the
+   whole performance, so they can glance at it while acting. */
+function actorCard(){
+  const s = SCEN[state.scenarioId];
+  return '<div class="secretbox"><b>'+FAMILIES[s.family].emoji+' Your secret situation</b>'+esc(s.text)+'</div>'+
+         '<div class="linebox"><div class="l1">Say only this line</div>'+
+         '<div class="l2">'+esc(PHR[state.phraseId].text)+'</div></div>';
+}
+
 function viewPrep(role){
   const left = Math.max(0, Math.ceil((state.prepUntil - srvNow())/1000));
   const pct = Math.max(0, Math.min(1, (state.prepUntil - srvNow())/PREP_MS));
   if(role==='actor'){
-    return '<div class="prep"><div class="num'+(left<=3?' hot':'')+'" id="prepNum">'+left+'</div>'+
-      '<div class="instr">Silence.<br>Step into character.</div>'+
-      '<div class="sub">Feel it in your <b>shoulders</b>, your <b>face</b>, your <b>breathing</b>.<br>Do not say anything yet.</div>'+
-      '<div class="ring"><i id="prepBar" style="width:'+(pct*100)+'%"></i></div></div>';
+    return '<div class="prep"><div class="num'+(left<=1?' hot':'')+'" id="prepNum">'+left+'</div>'+
+      '<div class="instr">Get into character.</div>'+
+      '<div class="sub">Read them both. Feel it in your <b>face</b> and <b>shoulders</b>.</div>'+
+      '<div class="ring"><i id="prepBar" style="width:'+(pct*100)+'%"></i></div></div>'+
+      actorCard();
   }
-  return '<div class="prep"><div class="num'+(left<=3?' hot':'')+'" id="prepNum">'+left+'</div>'+
+  return '<div class="prep"><div class="num'+(left<=1?' hot':'')+'" id="prepNum">'+left+'</div>'+
     '<div class="instr">Eyes up.<br>Watch your partner.</div>'+
     '<div class="sub">Do not look at your phone when they perform.<br>Watch their face and body — that is the clue.</div>'+
     '<div class="ring"><i id="prepBar" style="width:'+(pct*100)+'%"></i></div></div>';
 }
 
 function viewPerform(){
-  const s = SCEN[state.scenarioId];
   return '<div class="perform"><div class="go">PERFORM NOW!</div>'+
-    '<div class="linebox"><div class="l1">Say only this line</div><div class="l2">'+esc(PHR[state.phraseId].text)+'</div></div>'+
-    '<div class="secretbox"><b>'+FAMILIES[s.family].emoji+' Your secret situation</b>'+esc(s.text)+'</div>'+
-    '<div class="waiting" style="padding:20px 8px 4px"><div class="ic">👀</div>'+
+    actorCard()+
+    '<div class="waiting" style="padding:16px 8px 4px"><div class="ic">👀</div>'+
     '<h3>Say it as many times as you like</h3>'+
     '<p>Waiting for your partner to guess<span class="dots3">…</span></p></div></div>';
 }
@@ -598,6 +611,20 @@ function viewGuess(){
   h += '<div class="waiting" style="padding:14px 8px 0"><p id="watchNote">'+
        (locked ? '👀 <b>Watch first.</b> Cards unlock in a moment…' : 'Take your time — there is no rush.')+'</p></div>';
   return h;
+}
+
+/* The answer is in: the situation and line come off the screen and the actor
+   sees only the outcome. */
+function viewActorVerdict(){
+  const s = SCEN[state.scenarioId];
+  const good = state.correct;
+  return '<div class="verdict '+(good?'good':'bad')+'">'+
+      '<div class="v1">'+(good?'✓ They read you!':'✗ They missed it')+'</div>'+
+      '<div class="v2">'+(good
+        ? 'Your partner named your situation correctly.'
+        : 'They chose: <b>'+esc(SCEN[state.guessId] ? SCEN[state.guessId].text : '—')+'</b>')+'</div></div>'+
+    '<div class="revealrow"><b>'+FAMILIES[s.family].emoji+' You were playing</b>'+esc(s.text)+'</div>'+
+    viewWait('⭐','They are scoring your acting','Your partner is deciding how convincing you were.');
 }
 
 function viewRate(){
@@ -640,6 +667,21 @@ function viewResult(role){
   const nextRole = (mySlot === (((state.round+1)%2===1)?'A':'B')) ? 'ACTOR' : 'OBSERVER';
   h += '<button class="btn" id="nextBtn">Next Round · you will be the '+nextRole+' →</button>';
   return h;
+}
+
+/* Hard stop. The clock has decided the podium, so nothing on this screen can be
+   tapped and the server refuses every action anyway. */
+function viewEnded(){
+  return '<div class="ended"><div class="ic">🏁</div>'+
+    '<h3>Round ended</h3>'+
+    '<div class="lead">Look at the leaderboard!</div>'+
+    '<div class="finals">'+
+      '<span>'+esc(state.name || ('Team '+state.team))+'</span>'+
+      '<span>'+state.score+' points</span>'+
+      '<span>'+state.rounds+' rounds</span>'+
+      ((state.bestStreak||0) >= 2 ? '<span>🔥 best streak '+state.bestStreak+'</span>' : '')+
+    '</div>'+
+    '<div class="note">Phones down, eyes on the screen.<br>Scores are final.</div></div>';
 }
 
 function viewWait(ic, title, sub){
